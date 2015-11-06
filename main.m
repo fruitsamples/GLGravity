@@ -3,7 +3,7 @@
 File: main.m
 Abstract: Entry point for this application.
 
-Version: 2.0
+Version: 2.1
 
 Disclaimer: IMPORTANT:  This Apple software is supplied to you by Apple Inc.
 ("Apple") in consideration of your agreement to the following terms, and your
@@ -41,7 +41,7 @@ DISTRIBUTION OF THE APPLE SOFTWARE, HOWEVER CAUSED AND WHETHER UNDER THEORY OF
 CONTRACT, TORT (INCLUDING NEGLIGENCE), STRICT LIABILITY OR OTHERWISE, EVEN IF
 APPLE HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-Copyright (C) 2008 Apple Inc. All Rights Reserved.
+Copyright (C) 2009 Apple Inc. All Rights Reserved.
 
 */
 
@@ -49,8 +49,8 @@ Copyright (C) 2008 Apple Inc. All Rights Reserved.
 
 int main(int argc, char *argv[])
 {
-	NSAutoreleasePool *pool = [NSAutoreleasePool new];
-	UIApplicationMain(argc, argv, nil, @"AppController");
-	[pool release];
-	return 0;
+	NSAutoreleasePool * pool = [[NSAutoreleasePool alloc] init];
+    int retVal = UIApplicationMain(argc, argv, nil, nil);
+    [pool release];
+    return retVal;
 }

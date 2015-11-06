@@ -15,8 +15,9 @@
 		1DF5F4E00D08C38300B7A737 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1DF5F4DF0D08C38300B7A737 /* UIKit.framework */; };
 		2D500B940D5A79C200DBA0E3 /* OpenGLES.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2D500B920D5A79C200DBA0E3 /* OpenGLES.framework */; };
 		2D500B9A0D5A79CF00DBA0E3 /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2D500B990D5A79CF00DBA0E3 /* QuartzCore.framework */; };
-		63A452D10E08777600AA59DC /* AppController.m in Sources */ = {isa = PBXBuildFile; fileRef = 63A452CE0E08777600AA59DC /* AppController.m */; };
 		63E8ED9F0E1ACA88004D3662 /* GLGravityView.m in Sources */ = {isa = PBXBuildFile; fileRef = 63E8ED9D0E1ACA88004D3662 /* GLGravityView.m */; };
+		AF85818310643D940004D36B /* GLGravityAppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = AF85818210643D940004D36B /* GLGravityAppDelegate.m */; };
+		AF85846C10646AA20004D36B /* MainWindow.xib in Resources */ = {isa = PBXBuildFile; fileRef = AF85846B10646AA20004D36B /* MainWindow.xib */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -31,12 +32,13 @@
 		2D500B920D5A79C200DBA0E3 /* OpenGLES.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGLES.framework; path = System/Library/Frameworks/OpenGLES.framework; sourceTree = SDKROOT; };
 		2D500B990D5A79CF00DBA0E3 /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
 		32CA4F630368D1EE00C91783 /* Prefix.pch */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Prefix.pch; sourceTree = "<group>"; };
-		63A452CD0E08777600AA59DC /* AppController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppController.h; path = Classes/AppController.h; sourceTree = "<group>"; };
-		63A452CE0E08777600AA59DC /* AppController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = AppController.m; path = Classes/AppController.m; sourceTree = "<group>"; };
 		63A452D60E0877A900AA59DC /* teapot.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = teapot.h; path = Models/teapot.h; sourceTree = "<group>"; };
 		63E8ED9D0E1ACA88004D3662 /* GLGravityView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = GLGravityView.m; path = Classes/GLGravityView.m; sourceTree = "<group>"; };
 		63E8ED9E0E1ACA88004D3662 /* GLGravityView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = GLGravityView.h; path = Classes/GLGravityView.h; sourceTree = "<group>"; };
 		8D1107310486CEB800E47090 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		AF85818110643D940004D36B /* GLGravityAppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = GLGravityAppDelegate.h; path = Classes/GLGravityAppDelegate.h; sourceTree = "<group>"; };
+		AF85818210643D940004D36B /* GLGravityAppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = GLGravityAppDelegate.m; path = Classes/GLGravityAppDelegate.m; sourceTree = "<group>"; };
+		AF85846B10646AA20004D36B /* MainWindow.xib */ = {isa = PBXFileReference; lastKnownFileType = file.xib; path = MainWindow.xib; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -89,6 +91,7 @@
 		29B97317FDCFA39411CA2CEA /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				AF85846B10646AA20004D36B /* MainWindow.xib */,
 				14078D150DD3BF69003D766A /* Icon.png */,
 				1D4F2F990D10AC310045FB13 /* Default.png */,
 				8D1107310486CEB800E47090 /* Info.plist */,
@@ -111,8 +114,8 @@
 		2D500B1D0D5A766B00DBA0E3 /* Classes */ = {
 			isa = PBXGroup;
 			children = (
-				63A452CD0E08777600AA59DC /* AppController.h */,
-				63A452CE0E08777600AA59DC /* AppController.m */,
+				AF85818110643D940004D36B /* GLGravityAppDelegate.h */,
+				AF85818210643D940004D36B /* GLGravityAppDelegate.m */,
 				63E8ED9E0E1ACA88004D3662 /* GLGravityView.h */,
 				63E8ED9D0E1ACA88004D3662 /* GLGravityView.m */,
 			);
@@ -171,6 +174,7 @@
 			files = (
 				1D4F2F9A0D10AC310045FB13 /* Default.png in Resources */,
 				14078D160DD3BF69003D766A /* Icon.png in Resources */,
+				AF85846C10646AA20004D36B /* MainWindow.xib in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -182,8 +186,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				1D60589B0D05DD56006BFB54 /* main.m in Sources */,
-				63A452D10E08777600AA59DC /* AppController.m in Sources */,
 				63E8ED9F0E1ACA88004D3662 /* GLGravityView.m in Sources */,
+				AF85818310643D940004D36B /* GLGravityAppDelegate.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -235,7 +239,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				PREBINDING = NO;
-				SDKROOT = iphoneos2.0;
+				SDKROOT = iphoneos3.1;
 			};
 			name = Debug;
 		};
@@ -249,7 +253,7 @@
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				PREBINDING = NO;
-				SDKROOT = iphoneos2.0;
+				SDKROOT = iphoneos3.1;
 			};
 			name = Release;
 		};

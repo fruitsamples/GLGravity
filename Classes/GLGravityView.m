@@ -6,7 +6,7 @@ UIView subclass. The view content is basically an EAGL surface you render your
 OpenGL scene into.  Note that setting the view non-opaque will only work if the
 EAGL surface has an alpha channel.
 
-Version: 1.6
+Version: 2.1
 
 Disclaimer: IMPORTANT:  This Apple software is supplied to you by Apple Inc.
 ("Apple") in consideration of your agreement to the following terms, and your
@@ -44,7 +44,7 @@ DISTRIBUTION OF THE APPLE SOFTWARE, HOWEVER CAUSED AND WHETHER UNDER THEORY OF
 CONTRACT, TORT (INCLUDING NEGLIGENCE), STRICT LIABILITY OR OTHERWISE, EVEN IF
 APPLE HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-Copyright (C) 2008 Apple Inc. All Rights Reserved.
+Copyright (C) 2009 Apple Inc. All Rights Reserved.
 
 */
 
@@ -52,18 +52,28 @@ Copyright (C) 2008 Apple Inc. All Rights Reserved.
 #import <OpenGLES/EAGLDrawable.h>
 
 #import "GLGravityView.h"
+#import "teapot.h"
 
+// CONSTANTS
+#define kTeapotScale				3.0
+
+// MACROS
+#define DEGREES_TO_RADIANS(__ANGLE__) ((__ANGLE__) / 180.0 * M_PI)
+
+// A class extension to declare private methods
 @interface GLGravityView (private)
 
-- (id)initGLES;
 - (BOOL)createFramebuffer;
 - (void)destroyFramebuffer;
+- (void)setupView;
 
 @end
 
 @implementation GLGravityView
 
-@synthesize animationInterval;
+@synthesize animating;
+@dynamic animationFrameInterval;
+@synthesize accel;
 
 // Implement this to override the default layer class (which is [CALayer class]).
 // We do this so that our view will be backed by a layer that is capable of OpenGL ES rendering.
@@ -72,62 +82,162 @@ Copyright (C) 2008 Apple Inc. All Rights Reserved.
 	return [CAEAGLLayer class];
 }
 
-// When created via code however, we get initWithFrame
--(id)initWithFrame:(CGRect)frame
-{
-	self = [super initWithFrame:frame];
-	if(self != nil)
-	{
-		self = [self initGLES];
-	}
-	return self;
-}
-
-//The GL view is stored in the nib file. When it's unarchived it's sent -initWithCoder:
-- (id)initWithCoder:(NSCoder*)coder
-{
-	if((self = [super initWithCoder:coder]))
-	{
-		self = [self initGLES];
-	}	
-	return self;
-}
-
--(id)initGLES
-{
-	// Get our backing layer
-	CAEAGLLayer *eaglLayer = (CAEAGLLayer*) self.layer;
+// The GL view is stored in the nib file. When it's unarchived it's sent -initWithCoder:
+- (id)initWithCoder:(NSCoder*)coder {
+    
+    if ((self = [super initWithCoder:coder])) {
+		CAEAGLLayer *eaglLayer = (CAEAGLLayer *)self.layer;
 	
-	// Configure it so that it is opaque, does not retain the contents of the backbuffer when displayed, and uses RGBA8888 color.
-	eaglLayer.opaque = YES;
-	eaglLayer.drawableProperties = [NSDictionary dictionaryWithObjectsAndKeys:
-										[NSNumber numberWithBool:FALSE], kEAGLDrawablePropertyRetainedBacking,
-										kEAGLColorFormatRGBA8, kEAGLDrawablePropertyColorFormat,
-										nil];
+		eaglLayer.opaque = YES;
+		eaglLayer.drawableProperties = [NSDictionary dictionaryWithObjectsAndKeys:
+									[NSNumber numberWithBool:NO], kEAGLDrawablePropertyRetainedBacking, kEAGLColorFormatRGBA8, kEAGLDrawablePropertyColorFormat, nil];
 	
-	// Create our EAGLContext, and if successful make it current and create our framebuffer.
-	context = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES1];
-	if(!context || ![EAGLContext setCurrentContext:context] || ![self createFramebuffer])
-	{
-		[self release];
-		return nil;
+		context = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES1];
+	
+		if (!context || ![EAGLContext setCurrentContext:context]) {
+			[self release];
+			return nil;
+		}
+	
+		animating = FALSE;
+		displayLinkSupported = FALSE;
+		animationFrameInterval = 1;
+		displayLink = nil;
+		animationTimer = nil;
+	
+		// A system version of 3.1 or greater is required to use CADisplayLink. The NSTimer
+		// class is used as fallback when it isn't available.
+		NSString *reqSysVer = @"3.1";
+		NSString *currSysVer = [[UIDevice currentDevice] systemVersion];
+		if ([currSysVer compare:reqSysVer options:NSNumericSearch] != NSOrderedAscending)
+			displayLinkSupported = TRUE;
+		
+		accel = calloc(3, sizeof(UIAccelerationValue));
+		
+		[self setupView];
 	}
 	
-	// Default the animation interval to 1/60th of a second.
-	animationInterval = 1.0 / 60.0;
 	return self;
 }
-
--(id<GLGravityViewDelegate>)delegate
+	
+-(void)setupView
 {
-	return delegate;
+	const GLfloat			lightAmbient[] = {0.2, 0.2, 0.2, 1.0};
+	const GLfloat			lightDiffuse[] = {1.0, 0.6, 0.0, 1.0};
+	const GLfloat			matAmbient[] = {0.6, 0.6, 0.6, 1.0};
+	const GLfloat			matDiffuse[] = {1.0, 1.0, 1.0, 1.0};	
+	const GLfloat			matSpecular[] = {1.0, 1.0, 1.0, 1.0};
+	const GLfloat			lightPosition[] = {0.0, 0.0, 1.0, 0.0}; 
+	const GLfloat			lightShininess = 100.0,
+							zNear = 0.1,
+							zFar = 1000.0,
+							fieldOfView = 60.0;
+	GLfloat					size;
+	
+	//Configure OpenGL lighting
+	glEnable(GL_LIGHTING);
+	glEnable(GL_LIGHT0);
+	glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, matAmbient);
+	glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, matDiffuse);
+	glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, matSpecular);
+	glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, lightShininess);
+	glLightfv(GL_LIGHT0, GL_AMBIENT, lightAmbient);
+	glLightfv(GL_LIGHT0, GL_DIFFUSE, lightDiffuse);
+	glLightfv(GL_LIGHT0, GL_POSITION, lightPosition); 			
+	glShadeModel(GL_SMOOTH);
+	glEnable(GL_DEPTH_TEST);
+		
+	//Configure OpenGL arrays
+	glEnableClientState(GL_VERTEX_ARRAY);
+	glEnableClientState(GL_NORMAL_ARRAY);
+	glVertexPointer(3 ,GL_FLOAT, 0, teapot_vertices);
+	glNormalPointer(GL_FLOAT, 0, teapot_normals);
+	glEnable(GL_NORMALIZE);
+
+	//Set the OpenGL projection matrix
+	glMatrixMode(GL_PROJECTION);
+	size = zNear * tanf(DEGREES_TO_RADIANS(fieldOfView) / 2.0);
+	CGRect rect = self.bounds;
+	glFrustumf(-size, size, -size / (rect.size.width / rect.size.height), size / (rect.size.width / rect.size.height), zNear, zFar);
+	glViewport(0, 0, rect.size.width, rect.size.height);
+	
+	//Make the OpenGL modelview matrix the default
+	glMatrixMode(GL_MODELVIEW);
 }
 
-// Update the delegate, and if it needs a -setupView: call, set our internal flag so that it will be called.
--(void)setDelegate:(id<GLGravityViewDelegate>)d
+// Updates the OpenGL view
+- (void)drawView
 {
-	delegate = d;
-	delegateSetup = ![delegate respondsToSelector:@selector(setupView:)];
+	// Make sure that you are drawing to the current context
+	[EAGLContext setCurrentContext:context];
+		
+	glBindFramebufferOES(GL_FRAMEBUFFER_OES, viewFramebuffer);
+	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		
+	GLfloat matrix[4][4], length;
+		
+	//Make sure we have a big enough acceleration vector
+	length = sqrtf(accel[0] * accel[0] + accel[1] * accel[1] + accel[2] * accel[2]);
+		
+	//Setup model view matrix
+	glLoadIdentity();
+	glTranslatef(0.0, -0.1, -1.0);
+	glScalef(kTeapotScale, kTeapotScale, kTeapotScale);
+		
+	if(length >= 0.1)
+	{
+		//Clear matrix to be used to rotate from the current referential to one based on the gravity vector
+		bzero(matrix, sizeof(matrix));
+		matrix[3][3] = 1.0;
+		
+		//Setup first matrix column as gravity vector
+		matrix[0][0] = accel[0] / length;
+		matrix[0][1] = accel[1] / length;
+		matrix[0][2] = accel[2] / length;
+			
+		//Setup second matrix column as an arbitrary vector in the plane perpendicular to the gravity vector {Gx, Gy, Gz} defined by by the equation "Gx * x + Gy * y + Gz * z = 0" in which we arbitrarily set x=0 and y=1
+		matrix[1][0] = 0.0;
+		matrix[1][1] = 1.0;
+		matrix[1][2] = -accel[1] / accel[2];
+		length = sqrtf(matrix[1][0] * matrix[1][0] + matrix[1][1] * matrix[1][1] + matrix[1][2] * matrix[1][2]);
+		matrix[1][0] /= length;
+		matrix[1][1] /= length;
+		matrix[1][2] /= length;
+		
+		//Setup third matrix column as the cross product of the first two
+		matrix[2][0] = matrix[0][1] * matrix[1][2] - matrix[0][2] * matrix[1][1];
+		matrix[2][1] = matrix[1][0] * matrix[0][2] - matrix[1][2] * matrix[0][0];
+		matrix[2][2] = matrix[0][0] * matrix[1][1] - matrix[0][1] * matrix[1][0];
+		
+		//Finally load matrix
+		glMultMatrixf((GLfloat*)matrix);
+		
+		// Rotate a bit more so that its where we want it.
+		glRotatef(90.0, 0.0, 0.0, 1.0);
+	}
+	// If we're in the simulator we'd like to do something more interesting than just sit there
+	// But if we're on a device, we want to just let the accelerometer do the work for us without a fallback.
+#if TARGET_IPHONE_SIMULATOR
+	else
+	{
+		static GLfloat spinX = 0.0, spinY = 0.0;
+		glRotatef(spinX, 0.0, 0.0, 1.0);
+		glRotatef(spinY, 0.0, 1.0, 0.0);
+		glRotatef(90.0, 1.0, 0.0, 0.0);
+		spinX += 1.0;
+		spinY += 0.25;
+	}
+#endif
+		
+	// Draw teapot. The new_teapot_indicies array is an RLE (run-length encoded) version of the teapot_indices array in teapot.h
+	for(int i = 0; i < num_teapot_indices; i += new_teapot_indicies[i] + 1)
+	{
+		glDrawElements(GL_TRIANGLE_STRIP, new_teapot_indicies[i], GL_UNSIGNED_SHORT, &new_teapot_indicies[i+1]);
+	}
+ 
+	glBindRenderbufferOES(GL_RENDERBUFFER_OES, viewRenderbuffer);
+	[context presentRenderbuffer:GL_RENDERBUFFER_OES];
 }
 
 // If our view is resized, we'll be asked to layout subviews.
@@ -150,7 +260,7 @@ Copyright (C) 2008 Apple Inc. All Rights Reserved.
 	glBindFramebufferOES(GL_FRAMEBUFFER_OES, viewFramebuffer);
 	glBindRenderbufferOES(GL_RENDERBUFFER_OES, viewRenderbuffer);
 	// This call associates the storage for the current render buffer with the EAGLDrawable (our CAEAGLLayer)
-	// allowing us to draw into a buffer that will later be rendered to screen whereever the layer is (which corresponds with our view).
+	// allowing us to draw into a buffer that will later be rendered to screen wherever the layer is (which corresponds with our view).
 	[context renderbufferStorage:GL_RENDERBUFFER_OES fromDrawable:(id<EAGLDrawable>)self.layer];
 	glFramebufferRenderbufferOES(GL_FRAMEBUFFER_OES, GL_COLOR_ATTACHMENT0_OES, GL_RENDERBUFFER_OES, viewRenderbuffer);
 	
@@ -187,57 +297,74 @@ Copyright (C) 2008 Apple Inc. All Rights Reserved.
 	}
 }
 
-- (void)startAnimation
+- (NSInteger) animationFrameInterval
 {
-	animationTimer = [NSTimer scheduledTimerWithTimeInterval:animationInterval target:self selector:@selector(drawView) userInfo:nil repeats:YES];
+	return animationFrameInterval;
+}
+
+- (void) setAnimationFrameInterval:(NSInteger)frameInterval
+{
+	// Frame interval defines how many display frames must pass between each time the
+	// display link fires. The display link will only fire 30 times a second when the
+	// frame internal is two on a display that refreshes 60 times a second. The default
+	// frame interval setting of one will fire 60 times a second when the display refreshes
+	// at 60 times a second. A frame interval setting of less than one results in undefined
+	// behavior.
+	if (frameInterval >= 1)
+	{
+		animationFrameInterval = frameInterval;
+		
+		if (animating)
+		{
+			[self stopAnimation];
+			[self startAnimation];
+		}
+	}
+}
+
+- (void) startAnimation
+{
+	if (!animating)
+	{
+		if (displayLinkSupported)
+		{
+			// CADisplayLink is API new to iPhone SDK 3.1. Compiling against earlier versions will result in a warning, but can be dismissed
+			// if the system version runtime check for CADisplayLink exists in -initWithCoder:. The runtime check ensures this code will
+			// not be called in system versions earlier than 3.1.
+			
+			displayLink = [NSClassFromString(@"CADisplayLink") displayLinkWithTarget:self selector:@selector(drawView)];
+			[displayLink setFrameInterval:animationFrameInterval];
+			[displayLink addToRunLoop:[NSRunLoop currentRunLoop] forMode:NSDefaultRunLoopMode];
+		}
+		else
+			animationTimer = [NSTimer scheduledTimerWithTimeInterval:(NSTimeInterval)((1.0 / 60.0) * animationFrameInterval) target:self selector:@selector(drawView) userInfo:nil repeats:TRUE];
+		
+		animating = TRUE;
+	}
 }
 
 - (void)stopAnimation
 {
-	[animationTimer invalidate];
-	animationTimer = nil;
-}
-
-- (void)setAnimationInterval:(NSTimeInterval)interval
-{
-	animationInterval = interval;
-	
-	if(animationTimer)
+	if (animating)
 	{
-		[self stopAnimation];
-		[self startAnimation];
+		if (displayLinkSupported)
+		{
+			[displayLink invalidate];
+			displayLink = nil;
+		}
+		else
+		{
+			[animationTimer invalidate];
+			animationTimer = nil;
+		}
+		
+		animating = FALSE;
 	}
 }
 
-// Updates the OpenGL view when the timer fires
-- (void)drawView
-{
-	// Make sure that you are drawing to the current context
-	[EAGLContext setCurrentContext:context];
-	
-	// If our drawing delegate needs to have the view setup, then call -setupView: and flag that it won't need to be called again.
-	if(!delegateSetup)
-	{
-		[delegate setupView:self];
-		delegateSetup = YES;
-	}
-	
-	glBindFramebufferOES(GL_FRAMEBUFFER_OES, viewFramebuffer);
-
-	[delegate drawView:self];
-	
-	glBindRenderbufferOES(GL_RENDERBUFFER_OES, viewRenderbuffer);
-	[context presentRenderbuffer:GL_RENDERBUFFER_OES];
-	
-	GLenum err = glGetError();
-	if(err)
-		NSLog(@"%x error", err);
-}
-
-// Stop animating and release resources when they are no longer needed.
 - (void)dealloc
 {
-	[self stopAnimation];
+	free(accel);
 	
 	if([EAGLContext currentContext] == context)
 	{
@@ -245,8 +372,6 @@ Copyright (C) 2008 Apple Inc. All Rights Reserved.
 	}
 	
 	[context release];
-	context = nil;
-	
 	[super dealloc];
 }
 

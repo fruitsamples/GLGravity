@@ -1,10 +1,12 @@
 /*
 
 File: GLGravityView.h
-Abstract: A UIView subclass that allows for the rendering of OpenGL ES content
-by a delegate that implements the GLGravityViewDelegate protocol.
+Abstract: This class wraps the CAEAGLLayer from CoreAnimation into a convenient
+UIView subclass. The view content is basically an EAGL surface you render your
+OpenGL scene into.  Note that setting the view non-opaque will only work if the
+EAGL surface has an alpha channel.
 
-Version: 2.0
+Version: 2.1
 
 Disclaimer: IMPORTANT:  This Apple software is supplied to you by Apple Inc.
 ("Apple") in consideration of your agreement to the following terms, and your
@@ -42,7 +44,7 @@ DISTRIBUTION OF THE APPLE SOFTWARE, HOWEVER CAUSED AND WHETHER UNDER THEORY OF
 CONTRACT, TORT (INCLUDING NEGLIGENCE), STRICT LIABILITY OR OTHERWISE, EVEN IF
 APPLE HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-Copyright (C) 2008 Apple Inc. All Rights Reserved.
+Copyright (C) 2009 Apple Inc. All Rights Reserved.
 
 */
 
@@ -51,11 +53,9 @@ Copyright (C) 2008 Apple Inc. All Rights Reserved.
 #import <OpenGLES/ES1/gl.h>
 #import <OpenGLES/ES1/glext.h>
 
-@protocol GLGravityViewDelegate;
-
 @interface GLGravityView : UIView
 {
-	@private
+@private
 	// The pixel dimensions of the backbuffer
 	GLint backingWidth;
 	GLint backingHeight;
@@ -68,38 +68,26 @@ Copyright (C) 2008 Apple Inc. All Rights Reserved.
 	// OpenGL name for the depth buffer that is attached to viewFramebuffer, if it exists (0 if it does not exist)
 	GLuint depthRenderbuffer;
 	
-	// An animation timer that, when animation is started, will periodically call -drawView at the given rate.
-	NSTimer *animationTimer;
-	NSTimeInterval animationInterval;
+	BOOL animating;
+	BOOL displayLinkSupported;
+	NSInteger animationFrameInterval;
+	// Use of the CADisplayLink class is the preferred method for controlling your animation timing.
+	// CADisplayLink will link to the main display and fire every vsync when added to a given run-loop.
+	// The NSTimer class is used only as fallback when running on a pre 3.1 device where CADisplayLink
+	// isn't available.
+	id displayLink;
+    NSTimer *animationTimer;
 	
-	// Delegate to do our drawing, called by -drawView, which can be called manually or via the animation timer.
-	id<GLGravityViewDelegate> delegate;
-	
-	// Flag to denote that the -setupView method of a delegate has been called.
-	// Resets to NO whenever the delegate changes.
-	BOOL delegateSetup;
+	UIAccelerationValue	*accel;
 }
 
-@property(nonatomic, assign) id<GLGravityViewDelegate> delegate;
+@property (readonly, nonatomic, getter=isAnimating) BOOL animating;
+@property (nonatomic) NSInteger animationFrameInterval;
+
+@property (nonatomic) UIAccelerationValue *accel;
 
 -(void)startAnimation;
 -(void)stopAnimation;
 -(void)drawView;
-
-@property NSTimeInterval animationInterval;
-
-@end
-
-@protocol GLGravityViewDelegate<NSObject>
-
-@required
-
-// Draw with OpenGL ES
--(void)drawView:(GLGravityView*)view;
-
-@optional
-
-// Called whenever you need to do some initialization before rendering.
--(void)setupView:(GLGravityView*)view;
 
 @end

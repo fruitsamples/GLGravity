@@ -10,12 +10,12 @@ This application is designed to run on a device, not in the iPhone Simulator. Ro
 ===========================================================================
 BUILD REQUIREMENTS:
 
-iPhone SDK 3.1 and later
+iOS 4.0 SDK
 
 ===========================================================================
 RUNTIME REQUIREMENTS:
 
-iPhone OS 3.1 and later
+iOS 3.2 or later
 
 ===========================================================================
 PACKAGING LIST:
@@ -36,6 +36,9 @@ Entry point for this application.
 
 ===========================================================================
 CHANGES FROM PREVIOUS VERSIONS:
+
+Version 2.2
+- Upgraded project to build with the iOS 4.0 SDK.
 
 Version 2.1
 - Updated for iPhone OS 3.1. Use CADisplayLink as the preferred method for controlling animation timing, and fall back to NSTimer when running on a pre 3.1 device where CADisplayLink is not available.
@@ -60,4 +63,4 @@ Version 1.1
 - Updated for Beta 2	
 
 ===========================================================================
-Copyright (C) 2009 Apple Inc. All rights reserved.
+Copyright (C) 2009-2010 Apple Inc. All rights reserved.
